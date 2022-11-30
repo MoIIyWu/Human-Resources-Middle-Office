@@ -11,6 +11,12 @@
   }
 }
 
+.uploadImg{
+  .el-upload--picture-card{
+    display: none;
+}
+}
+
 .el-upload__input {
   display: none;
 }

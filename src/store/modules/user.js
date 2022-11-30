@@ -1,90 +1,61 @@
-import { login, logout, getInfo } from '@/api/user'
-import { getToken, setToken, removeToken } from '@/utils/auth'
-import { resetRouter } from '@/router'
+import { getToken, setToken, removeToken, setTimekey } from '@/utils/auth'
+import { login, getUserInfo, getUserDetailById } from '@/api/user'
 
-const getDefaultState = () => {
-  return {
-    token: getToken(),
-    name: '',
-    avatar: ''
-  }
+// 实现token的持久化
+const state = {
+  // 从项目一初始化的时候就从本地读取token值
+  token: getToken(),
+  // 定义一个空的对象
+  userInfo: {}
 }
 
-const state = getDefaultState()
-
 const mutations = {
-  RESET_STATE: (state) => {
-    Object.assign(state, getDefaultState())
-  },
-  SET_TOKEN: (state, token) => {
+  // 当token值发生改变的时候,设置更改token值的方法
+  setToken(state, token) {
     state.token = token
+    // 调用setToken方法
+    setToken(token)
   },
-  SET_NAME: (state, name) => {
-    state.name = name
+  // 设置删除token值的方法
+  removeToken(state) {
+    // 先让state 的 token 为空
+    state.token = null
+    removeToken()
   },
-  SET_AVATAR: (state, avatar) => {
-    state.avatar = avatar
+  // 更新(/存储)用户的信息
+  setUerInfo(state, data) {
+    state.userInfo = data
+  },
+  // 删除用户信息
+  removeUserInfo(state) {
+    state.userInfo = {}
   }
 }
 
 const actions = {
-  // user login
-  login({ commit }, userInfo) {
-    const { username, password } = userInfo
-    return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
-        const { data } = response
-        commit('SET_TOKEN', data.token)
-        setToken(data.token)
-        resolve()
-      }).catch(error => {
-        reject(error)
-      })
-    })
+  // 在这里定义发送请求的函数
+  async login({ commit }, token) {
+    const data = await login(token)
+    commit('setToken', data)
+    // 在请求登录的时候会获取到token值，然后存储获取到token值的时间
+    setTimekey()
   },
 
-  // get user info
-  getInfo({ commit, state }) {
-    return new Promise((resolve, reject) => {
-      getInfo(state.token).then(response => {
-        const { data } = response
-
-        if (!data) {
-          return reject('Verification failed, please Login again.')
-        }
-
-        const { name, avatar } = data
-
-        commit('SET_NAME', name)
-        commit('SET_AVATAR', avatar)
-        resolve(data)
-      }).catch(error => {
-        reject(error)
-      })
-    })
+  // 封装请求用户信息的函数
+  async getUserInfo({ commit }) {
+    const data = await getUserInfo()
+    const baseInfo = await getUserDetailById(data.userId)
+    // 将得到的两个结果合并存到 setUerInfo
+    const baseData = { ...data, ...baseInfo }
+    commit('setUerInfo', baseData)
+    // 这里要返回baseData，为以后做铺垫
+    return baseData
   },
 
-  // user logout
-  logout({ commit, state }) {
-    return new Promise((resolve, reject) => {
-      logout(state.token).then(() => {
-        removeToken() // must remove  token  first
-        resetRouter()
-        commit('RESET_STATE')
-        resolve()
-      }).catch(error => {
-        reject(error)
-      })
-    })
-  },
-
-  // remove token
-  resetToken({ commit }) {
-    return new Promise(resolve => {
-      removeToken() // must remove  token  first
-      commit('RESET_STATE')
-      resolve()
-    })
+  // 定义登出的函数
+  logout({ commit }) {
+    commit('removeToken')
+    commit('removeUserInfo')
   }
 }
 
@@ -94,4 +65,3 @@ export default {
   mutations,
   actions
 }
-

@@ -115,3 +115,35 @@ export function param2Obj(url) {
   })
   return obj
 }
+
+export const List2Tree = (deps, rootValue) => {
+  return deps.reduce((prev, curr, index, arr) => {
+    // console.log(prev)
+    // console.log(curr)
+
+    // curr.children = arr.filter(item => item.pid === curr.id)
+
+    const ele = arr.filter(item => item.pid === curr.id)
+    if (ele.length) {
+      curr.children = ele
+    }
+    if (curr.pid === rootValue) {
+      prev.push(curr)
+    }
+    return prev
+  }, [])
+}
+
+// export function List2Tree(depts, rootValue) {
+//   const arr = []
+//   depts.forEach(item => {
+//     if (item.pid === rootValue) {
+//       const children = List2Tree(depts, item.id)
+//       if (children.length) {
+//         item.children = children
+//       }
+//       arr.push(item)
+//     }
+//   })
+//   return arr
+// }
